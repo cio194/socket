@@ -10,8 +10,12 @@
 
 using namespace std;
 
-void ErrSys(const string& func_name) {
-    cout << "call " << func_name << " failed" << endl;
+// 标准socket的包装函数用来干什么？
+// 针对EINTER，重启系统调用；
+// 哪些需要杀死程序，哪些不需要呢？统一都不杀死吧
+
+void ErrSys(const string& func) {
+    cout << "call " << func << " failed" << endl;
     exit(-1);
 }
 
@@ -26,31 +30,39 @@ void ErrMsg(const std::string& msg) {
 
 int Socket() {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0) ErrSys("socket");
+    if (fd < 0) ErrMsg("socket");
     return fd;
 }
 
-void Connect(int cli_fd, const string& serv_addr_str,
-    int serv_port) {
+int Connect(int clifd, const string& addr_str, int port) {
+    int ret = 1;
     sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    if (inet_pton(AF_INET, serv_addr_str.c_str(), &serv_addr.sin_addr) != 1)
-        ErrSys("inet_pton");
-    serv_addr.sin_port = htons(serv_port);
-    if (connect(cli_fd, (sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
-        ErrSys("connect");
+    ret = inet_pton(AF_INET, addr_str.c_str(), &serv_addr.sin_addr);
+    if (ret != 1) {
+        ErrMsg("inet_pton");
+        return ret;
+    }
+    serv_addr.sin_port = htons(port);
+    ret = connect(clifd, (sockaddr*) &serv_addr, sizeof(serv_addr));
+    if (ret < 0) {
+        ErrMsg("connect");
+        return ret;
+    }
+    return ret;
 }
 
-void Listen(int serv_fd, int backlog,
-    const std::string& serv_addr_str, int serv_port) {
+int Listen(int serv_fd, int backlog,
+           const std::string& addr, int port) {
+    int ret = 1;
     sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    if (inet_pton(AF_INET, serv_addr_str.c_str(), &serv_addr.sin_addr) != 1)
+    if (inet_pton(AF_INET, addr.c_str(), &serv_addr.sin_addr) != 1)
         ErrSys("inet_pton");
-    serv_addr.sin_port = htons(serv_port);
-    if (bind(serv_fd, (sockaddr*)(&serv_addr), sizeof(serv_addr)) < 0)
+    serv_addr.sin_port = htons(port);
+    if (bind(serv_fd, (sockaddr*) (&serv_addr), sizeof(serv_addr)) < 0)
         ErrSys("bind");
     if (listen(serv_fd, backlog) < 0) ErrSys("listen");
 }
@@ -60,9 +72,9 @@ int Accept(int sockfd, sockaddr_in* addr, socklen_t* len) {
     int connfd;
     while (true) {
         *len = sizeof(*addr);
-        connfd = accept(sockfd, (sockaddr*)addr, len);
-        if(connfd<0) {
-            if(errno==EINTR) continue;
+        connfd = accept(sockfd, (sockaddr*) addr, len);
+        if (connfd < 0) {
+            if (errno == EINTR) continue;
             ErrSys("accept");
         }
         break;
@@ -72,10 +84,10 @@ int Accept(int sockfd, sockaddr_in* addr, socklen_t* len) {
 
 ssize_t Read(int sockfd, char* buf, size_t nbytes) {
     ssize_t nread;
-    while(true) {
+    while (true) {
         nread = read(sockfd, buf, nbytes);
-        if(nread<0) {
-            if(errno==EINTR) continue;
+        if (nread < 0) {
+            if (errno == EINTR) continue;
             ErrSys("read");
         }
         break;
@@ -95,24 +107,4 @@ ssize_t WriteN(int fd, const char* buf, size_t n) {
         buf += write_n;
     }
     return n;
-}
-
-ssize_t ReadLine(int fd, string& read_line) {
-    read_line.clear();
-    char c;
-    int n;
-    while (true) {
-        while ((n = read(fd, &c, 1)) == 1) {
-            read_line.push_back(c);
-            if (c == '\n') return read_line.size();
-        }
-        if (n < 0) {
-            if (errno == EINTR) continue;
-            return -1;
-        } else if (n == 0) {
-            // EOF
-            return read_line.size();
-        }
-    }
-    return read_line.size();
 }

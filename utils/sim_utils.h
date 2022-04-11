@@ -15,7 +15,7 @@ const int SIM_SERV_PORT = 9090;
 
 const size_t MAX_EVENT_NUM = 1024;
 
-void ErrSys(const std::string& func_name);
+void ErrSys(const std::string& func);
 
 void ErrQuit(const std::string& msg);
 
@@ -25,11 +25,9 @@ int Socket();
 
 // 根据unp v1，p108，connect不应该由程序员自动重启
 // 要么使用select，要么让设置信号为自动重启系统调用
-void Connect(int cli_fd, const std::string& serv_addr_str,
-    int serv_port);
+int Connect(int clifd, const std::string& addr_str, int port);
 
-void Listen(int serv_fd, int backlog, 
-    const std::string& serv_addr_str, int serv_port);
+int Listen(int sockfd, int backlog, const std::string& addr, int port);
 
 int Accept(int sockfd, sockaddr_in* addr, socklen_t* len);
 
@@ -37,6 +35,6 @@ ssize_t Read(int sockfd, char* buf, size_t nbytes);
 
 ssize_t WriteN(int fd, const char* buf, size_t n);
 
-ssize_t ReadLine(int fd, std::string& read_line);
+ssize_t ReadLine(int fd, std::string& line);
 
 #endif
