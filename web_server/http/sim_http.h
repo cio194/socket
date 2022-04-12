@@ -42,13 +42,13 @@ private:
 private:
     static const std::unordered_set<std::string> METHODS;
     static const std::unordered_set<std::string> VERSIONS;
-    // 各种限制参考：https://blog.csdn.net/liayn523/article/details/70243694
+    // 参考：https://blog.csdn.net/liayn523/article/details/70243694
     static const int METHOD_MAX_LEN = 7;
     static const int URI_MAX_LEN = 8096;
     static const int VERSION_LEN = 8;
     static const int HEADER_KEY_MAX_LEN = 255;
-    static const int HEADER_VALUE_MAX_LEN = 737280; // 以cookie为参考，180*4096
-    static const int HEADERS_MAX_LEN = 8388608; // 8MB，8*1024*1024
+    static const int HEADER_VALUE_MAX_LEN = 180*4096; // cookie
+    static const int HEADERS_MAX_LEN = 8*1024*1024;
 private:
     static constexpr int BUF_SIZE = 4096;
     char buf[BUF_SIZE];
